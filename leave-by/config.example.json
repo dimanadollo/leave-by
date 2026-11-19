@@ -1,0 +1,12 @@
+{
+  "home_address": "1 Example Street, 28001 Madrid, Spain",
+  "timezone": "Europe/Madrid",
+  "city": "Madrid",
+  "calendar": "primary",
+  "buffer_minutes": 10,
+  "scan_days_ahead": 30,
+  "travel_modes": ["walking", "transit", "taxi"],
+  "walking_threshold_minutes": 30,
+  "schedule": "nightly",
+  "block_color_id": "2"
+}
