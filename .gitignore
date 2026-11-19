@@ -1,0 +1,8 @@
+# Personal settings (contains your home address). Never commit.
+config.json
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
