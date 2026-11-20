@@ -44,7 +44,8 @@ Buffer: 10 min before start.
 
 - **Claude** (claude.ai, the desktop app, or Claude Code) with skills enabled
 - **Google Calendar** connected with read + write access. Block colors use Google Calendar color ids; other calendars may work but are untested
-- **Web search** enabled (for travel-time lookups)
+- **Web search** enabled (used as the travel-time fallback)
+- Optional: a **routing connector** (Mapbox, TomTom, or a Google Routes API key) for accurate travel times. Without one, times are estimates
 - Optional: **scheduled tasks**, for the automatic nightly run
 
 ---
@@ -128,7 +129,7 @@ You can also trigger it any time:
 ## Design notes
 
 - **Idempotent by design.** The job runs over the same window again and again, so it reconciles (checks what already exists) before acting. No duplicate blocks.
-- **Honest about accuracy.** It never uses straight-line distance as travel time. Free web sources rarely return exact address-to-address times, so many blocks are labeled estimates (⚠️) and are meant to be double-checked in your maps app before you leave.
+- **Accurate when you connect routing.** If a routing connector (Mapbox, TomTom, Google Routes) is available, it uses real street and line times. Without one, it falls back to web lookups and then estimates, which are clearly labeled (⚠️) so you double-check them before leaving. It never uses straight-line distance as travel time.
 - **Careful with place names.** It always uses full addresses with postal code and sanity-checks results, because a street can share its name with a district across town.
 - **Blocks are linked to their event by id.** Moved events get their block updated, and two events close together never confuse it.
 - **Outbound only.** It plans the trip to an event, never the return.
@@ -142,7 +143,8 @@ Your home address and calendar stay in your own assistant's environment and conf
 
 - No return-trip planning
 - No blocks for virtual events
-- Travel times are often estimates, because free web sources rarely give exact address-to-address times. Blocks say so
+- Without a routing connector, travel times are estimates, because free web sources rarely give exact address-to-address times. Blocks say so
+- Routing connectors like Mapbox and TomTom cover walking and driving, not public transit, so transit stays an estimate on those
 - Events created after the last run are only planned at the next run, unless you add the midday run or ask on demand
 
 ---
