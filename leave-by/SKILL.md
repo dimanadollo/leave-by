@@ -108,8 +108,9 @@ Settings and defaults:
 | `block_color_id` | Google colorId for the skill's blocks | `2` (Sage) |
 
 Tools, loaded as needed: `tool_search("calendar events")` → list/create/update/delete_event ·
-`web_search` / `web_fetch` for travel times · `tool_search("weather")` only if needed for
-mode choice.
+a routing tool if connected (`tool_search("routing")` / `"directions"` / `"mapbox"`),
+preferred for travel times · `web_search` / `web_fetch` as the travel-time fallback ·
+`tool_search("weather")` only if needed for mode choice.
 
 ---
 
@@ -165,8 +166,9 @@ flag it in the run summary as `❓ Location unclear: [event] on [date]` (no bloc
 ---
 
 ## 2. Travel times - source hierarchy
-From the home address to the destination for **walking**, **taxi/rideshare**, **transit**
-(and **driving** if enabled). Take the first usable result.
+From the origin (the home address by default) to the destination for **walking**,
+**taxi/rideshare**, **transit** (and **driving** if enabled). Take the first usable result,
+best source first.
 
 **⚠️ Never use straight-line distance as travel time.** If only a straight-line distance is
 known, multiply it by about 1.3 to approximate street distance before applying the rates below.
@@ -177,19 +179,38 @@ its full address first. Watch for namesakes: a street can share its name with a 
 that is far away. Sanity-check every result: if it describes a different area, or the time
 is wildly off for the rough distance, discard it and fall back to the estimate.
 
-Google Maps links are not used: those pages need JavaScript and return nothing extractable.
+Scraping public map web pages is not used: those pages need JavaScript and return nothing
+extractable. A proper routing tool (step 1) is different and is the preferred source.
 
-1. **Third-party via `web_search`:** try at most two queries, for example
-   `Moovit walking time from [home] to [dest] [city]` or `Rome2Rio [home] to [dest]`.
-   Accept a result only if it states a travel time for this exact origin and destination.
-   Generic stop pages and district-level pages do not count. *In practice this rarely
-   succeeds for street addresses, so expect to reach step 2 often.*
-2. **Estimate** (the common case): walking ~12 min/km · taxi ~3-4 min/km in a city center ·
+1. **Routing tool, if one is connected (most accurate - always try this first).** At the
+   start of a run, probe for a routing/maps tool with `tool_search` (queries like
+   `directions`, `routing`, `distance matrix`, `mapbox`, `travel time`). If one is available
+   (for example a Mapbox, TomTom, or Google Routes connector, or a routing API key the user
+   configured), use it for every leg:
+   - Geocode origin and destination to coordinates first if the tool needs them. Geocoders
+     return namesakes (e.g. "Main Street 12" also matches "Main Street North 12" in another
+     district): restrict by country, search the full address, and accept a result only if the
+     street name and postal code match exactly. Never take the first hit blindly. A venue name
+     alone often matches several branches, so use the event's address.
+   - Request **walking** and **driving** (driving stands in for taxi/rideshare timing). If
+     the tool supports traffic, use the traffic profile with the planned departure time; add
+     about 4 min for the taxi to arrive.
+   - Request **transit** only if the tool supports it. Many routing tools (Mapbox, TomTom)
+     do **not** do public transit - for transit on those, fall back to step 2 or 3 for that
+     one mode while still using the tool for walking and driving.
+   - These are real street/line times. Mark `Source: <tool name>`.
+2. **Third-party via `web_search`** (fallback when no routing tool, or for transit a routing
+   tool lacks): try at most two queries, e.g. `Moovit transit time from [origin] to [dest]
+   [city]` or `Rome2Rio [origin] to [dest]`. Accept a result only if it states a time for
+   this exact origin and destination. Generic stop or district pages do not count. *For
+   street addresses this rarely succeeds, so expect step 3 often.*
+3. **Estimate** (last resort): walking ~12 min/km · taxi ~3-4 min/km in a city center ·
    transit incl. transfer usually 15-25 min within a city. Rush hour (8-10, 18-20) →
    taxi +30-50 %.
 
-**Always state the source** in the description (`Source: Moovit` / `Estimate`). For an
-estimate also add: `⚠️ Travel time estimated - check in Maps before leaving.`
+**Always state the source** in the description (`Source: Mapbox` / `Moovit` / `Estimate`).
+Only for an estimate add: `⚠️ Travel time estimated - check in Maps before leaving.` A time
+from a routing tool is treated as reliable and gets no estimate warning.
 
 ## 3. Choose the best option
 `if walk ≤ walking_threshold_minutes: walk; else: the faster of taxi / transit` (and driving
@@ -211,7 +232,7 @@ if enabled). Very early (before 6:00): transit is often "unavailable" → recomm
 🚪 Leave home at: [HH:MM]
 
 Alternatives:  🚶 [X] min · 🚖 [X] min · 🚇 [X] min
-Source: [Moovit / Rome2Rio / Estimate]
+Source: [Mapbox / Moovit / Rome2Rio / Estimate]
 [⚠️ Travel time estimated - check in Maps before leaving.  ← only for an estimate]
 Buffer: [buffer_minutes] min before start.
 leave-by: event=[event id]
